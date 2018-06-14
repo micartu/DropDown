@@ -40,6 +40,129 @@ extension UIBarButtonItem: AnchorView {
 
 }
 
+class ToolTipView: UIView {
+    var cornerRadius: CGFloat = 0 {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var customBorderColor: UIColor = UIColor.white {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var customBackColor: UIColor = UIColor.white {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var strokeWidth: CGFloat = 1 {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var aw: CGFloat = 35 {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var ah: CGFloat = 20 {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var offset: CGFloat = 20 {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    var d: CGFloat = 5 {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    override init(frame: CGRect) {
+        super.init(frame:frame)
+        self.isOpaque = false
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+    }
+    
+    override func draw(_ rect: CGRect) {
+        let con = UIGraphicsGetCurrentContext()!
+        let x0 = rect.origin.x
+        let y0 = rect.origin.y
+        let w = rect.size.width
+        let h = rect.size.height
+        let topLeft = CGPoint(x: x0 + d, y: y0 + d + ah)
+        let topRight = CGPoint(x: x0 - d + w, y: y0 + d + ah)
+        let bottomRight = CGPoint(x: x0 - d + w, y: y0 - d + h)
+        let bottomLeft = CGPoint(x: x0 + d, y: y0 - d + h)
+        
+        con.saveGState()
+        
+        // draw top line, but first draw the tip point:
+        con.move(to: CGPoint(x: topLeft.x + cornerRadius, y: topLeft.y))
+        con.addLine(to: CGPoint(x: topLeft.x + offset, y: topLeft.y))
+        con.addLine(to: CGPoint(x: topLeft.x + offset + aw / 2, y: d))
+        con.addLine(to: CGPoint(x: topLeft.x + offset + aw, y: topLeft.y))
+        
+        // and then the rest of the top line
+        con.addLine(to: CGPoint(x: topRight.x - cornerRadius, y: topRight.y))
+        
+        // top right curve
+        con.addArc(center: CGPoint(x: topRight.x - cornerRadius, y: topRight.y + cornerRadius),
+                   radius: cornerRadius,
+                   startAngle: CGFloat(3 * Double.pi / 2), endAngle: CGFloat(0 * Double.pi / 2),
+                   clockwise: false)
+        
+        // add right line
+        con.addLine(to: CGPoint(x: bottomRight.x, y: bottomRight.y - cornerRadius))
+        
+        // add bottom right curve
+        con.addArc(center: CGPoint(x: bottomRight.x - cornerRadius, y: bottomRight.y - cornerRadius),
+                   radius: cornerRadius,
+                   startAngle: CGFloat(0 * Double.pi / 2), endAngle: CGFloat(1 * Double.pi / 2),
+                   clockwise: false)
+        
+        // add bottom line
+        con.addLine(to: CGPoint(x: bottomLeft.x + cornerRadius, y: bottomLeft.y))
+        
+        // add bottom left curve
+        con.addArc(center: CGPoint(x: bottomLeft.x + cornerRadius, y: bottomLeft.y - cornerRadius),
+                   radius: cornerRadius,
+                   startAngle: CGFloat(1 * Double.pi / 2), endAngle: CGFloat(2 * Double.pi / 2),
+                   clockwise: false)
+        
+        // add left line
+        con.addLine(to: CGPoint(x: topLeft.x, y: topLeft.y + cornerRadius))
+        
+        // add top left curve
+        con.addArc(center: CGPoint(x: topLeft.x + cornerRadius, y: topLeft.y + cornerRadius),
+                   radius: cornerRadius,
+                   startAngle: CGFloat(2 * Double.pi / 2), endAngle: CGFloat(3 * Double.pi / 2),
+                   clockwise: false)
+        
+        // fill and store the path
+        con.setFillColor(customBackColor.cgColor)
+        con.setStrokeColor(customBorderColor.cgColor)
+        con.setLineWidth(strokeWidth)
+        con.drawPath(using: CGPathDrawingMode.eoFillStroke)
+        
+        con.restoreGState()
+    }
+}
+
 /// A Material Design drop down in replacement for `UIPickerView`.
 public final class DropDown: UIView {
 
@@ -160,14 +283,39 @@ public final class DropDown: UIView {
 	public var arrowIndicationX: CGFloat? {
 		didSet {
 			if let arrowIndicationX = arrowIndicationX {
-				tableViewContainer.addSubview(arrowIndication)
-				arrowIndication.tintColor = tableViewBackgroundColor
-				arrowIndication.frame.origin.x = arrowIndicationX
+                if #available(iOS 9.0, *) {
+                    let offset: CGFloat = 7
+                    let v = ToolTipView()
+                    addSubview(v)
+                    v.strokeWidth = 1
+                    v.customBorderColor = UIColor.black
+                    v.aw = aw
+                    v.ah = ah
+                    if let w = width {
+                        width = w - offset
+                    }
+                    v.tag = kTagForArrow
+                    v.translatesAutoresizingMaskIntoConstraints = false
+                    addConstraints([v.leadingAnchor.constraint(equalTo: tableViewContainer.leadingAnchor, constant:-offset),
+                                    v.topAnchor.constraint(equalTo: tableViewContainer.topAnchor, constant: -ah - offset),
+                                    v.trailingAnchor.constraint(equalTo: tableViewContainer.trailingAnchor, constant: offset),
+                                    v.bottomAnchor.constraint(equalTo: tableViewContainer.bottomAnchor, constant: offset)])
+                }
 			} else {
-				arrowIndication.removeFromSuperview()
+                if #available(iOS 9.0, *) {
+                    if let v = self.viewWithTag(kTagForArrow) {
+                        v.removeFromSuperview()
+                    }
+                }
 			}
 		}
 	}
+    fileprivate let kTagForArrow = 111
+    /// arrow's width
+    public var aw: CGFloat = 12
+    /// arrow's height
+    public var ah: CGFloat = 6
+
 
 	//MARK: Constraints
 	fileprivate var heightConstraint: NSLayoutConstraint!
@@ -616,10 +764,38 @@ extension DropDown {
 		// We update the constraint to update the position
 		setNeedsUpdateConstraints()
 
-		let shadowPath = UIBezierPath(roundedRect: tableViewContainer.bounds, cornerRadius: cornerRadius)
-		tableViewContainer.layer.shadowPath = shadowPath.cgPath
+        if arrowIndicationX != nil {
+            // let's draw tooltipped view
+            let vc = viewWithTag(kTagForArrow)!
+            (vc as? ToolTipView)?.cornerRadius = cornerRadius
+            
+            // remove shadow from table view, now it's attached to tooltipView:
+            tableViewContainer.layer.shadowPath = nil
+            tableViewContainer.layer.shadowColor = nil
+            tableViewContainer.layer.shadowRadius = 0
+            tableViewContainer.layer.shadowOffset = CGSize.zero
+            tableViewContainer.layer.shadowOpacity = 0
+            tableViewContainer.layer.masksToBounds = true
+            
+            let shadowPath = UIBezierPath(roundedRect: vc.bounds.offsetBy(dx: 0, dy: ah * 2),
+                                          cornerRadius: cornerRadius)
+            vc.layer.masksToBounds = false
+            vc.layer.shadowPath = shadowPath.cgPath
+            vc.layer.shadowColor = shadowColor.cgColor
+            vc.layer.shadowRadius = shadowRadius
+            vc.layer.shadowOffset = shadowOffset
+            vc.layer.shadowOpacity = shadowOpacity
+            
+            // and remove last tableview's separator:
+            tableView.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.bounds.size.width, height: 1))
+            // adjust insets (maybe it should be moved to a property?)
+            tableView.separatorInset = UIEdgeInsets.zero
+        } else {
+            let shadowPath = UIBezierPath(roundedRect: tableViewContainer.bounds, cornerRadius: cornerRadius)
+            tableViewContainer.layer.shadowPath = shadowPath.cgPath
+        }
 	}
-
+ 
 	fileprivate func computeLayout() -> (x: CGFloat, y: CGFloat, width: CGFloat, offscreenHeight: CGFloat, visibleHeight: CGFloat, canBeDisplayed: Bool, Direction: Direction) {
 		var layout: ComputeLayoutTuple = (0, 0, 0, 0)
 		var direction = self.direction
