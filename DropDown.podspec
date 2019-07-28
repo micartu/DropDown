@@ -25,5 +25,6 @@ Pod::Spec.new do |s|
   s.source_files = "DropDown/src", "DropDown/src/**/*.{h,m}", "DropDown/helpers", "DropDown/helpers/**/*.{h,m}"
   s.resources = "DropDown/resources/*.{png,xib}"
   s.requires_arc = true
+  s.swift_version = "4.2"
 
 end
